@@ -1,0 +1,15 @@
+cloud_storage_base_dir="/Users/ryanduecker/Dropbox/GoldenCheetah"
+gc_dir="/Users/ryanduecker/Library/GoldenCheetah"
+
+ln -s "${cloud_storage_base_dir}/Ryan Duecker" "${gc_dir}/Ryan Duecker" 
+ln -s "${cloud_storage_base_dir}/metrics" "${gc_dir}/metrics" 
+
+ln -s "${cloud_storage_base_dir}/charts" "${gc_dir}/charts" 
+ln -s "${cloud_storage_base_dir}/configglobal-general.ini" "${gc_dir}/configglobal-general.ini" 
+ln -s "${cloud_storage_base_dir}/configglobal-trainmode.ini" "${gc_dir}/configglobal-trainmode.ini" 
+ln -s "${cloud_storage_base_dir}/httpserver.ini" "${gc_dir}/httpserver.ini" 
+ln -s "${cloud_storage_base_dir}/library.xml" "${gc_dir}/library.xml" 
+ln -s "${cloud_storage_base_dir}/measures.ini" "${gc_dir}/measures.ini" 
+ln -s "${cloud_storage_base_dir}/metadata.xml" "${gc_dir}/metadata.xml" 
+ln -s "${cloud_storage_base_dir}/trainDB" "${gc_dir}/trainDB" 
+ln -s "${cloud_storage_base_dir}/usermetrics.xml" "${gc_dir}/usermetrics.xml" 
