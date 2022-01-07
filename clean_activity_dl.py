@@ -1,24 +1,26 @@
 import os
 activities_dir = """C:/Users/ryand/Golden Cheetah Dir/dl_activities"""
-# activities_dir = """C:/Users/ryand/Golden Cheetah Dir/dl_activities"""
 
-
-for dir_,dirs,files in  os.walk(activities_dir):
-	for file in files:
-		if '.fit' not in file:
-			if dir_ != '.':
-				os.remove(dir_ + "/" + file)
-			else:
-				os.remove(activities_dir + "/" + file)
+dl_files = []
+for file in os.scandir(activities_dir):
+    # add in only files with extension. No dirs
+    if "." in file.name:
+        dl_files.append(file.name)
+    
+for file in dl_files:
+    if '.fit' not in file:
+        os.remove(activities_dir+ "/" + file)
 
 ### Ensure muted are not in the active dir
-activity_dir_files = files
+muted_dir = """C:/Users/ryand/Golden Cheetah Dir/dl_activities/muted_activities"""
 
-muted_dir =
+mute_files = []
+for file in os.scandir(muted_dir):
+    # add in only files with extension. No dirs
+    if "." in file.path:
+        mute_files.append(file.name)
 
-for dir_,dirs,files in os.walk(muted_dir):
-	for file in files:
-		if file not in activity_dir_files:
-			print(file)
-import time
-time.sleep(60)
+for file in dl_files:
+    if file in mute_files:
+        print(file)
+        os.remove(activities_dir + '/' + file)
