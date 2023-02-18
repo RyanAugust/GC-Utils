@@ -40,12 +40,18 @@ for file in os.scandir(old_dir):
 for file in dl_files:
     if '.fit' not in file.name:
         ## Remove non .fit files. Don't need em
-        os.remove(file.path)
+        try:
+            os.remove(file.path)
+        except:
+            print("failed to delete: {}".format(file.path))
 
-    if (file.name in mute_files) or (file.name in old_files):
+    elif (file.name in mute_files) or (file.name in old_files):
         ## Delete files that have already been moved to mute and old dirs
-        os.remove(file.path)
+        try:
+            os.remove(file.path)
+        except:
+            print("failed to delete (in other dir): {}".format(file.path))
 
     elif os.path.getctime(file.path) <  min_ctime:
         ## Move files that have not been moved to mute and old dirs
-        os.rename(file.path, '/'.join(old_dir,file.name))
+        os.rename(file.path, '/'.join([old_dir,file.name]))
