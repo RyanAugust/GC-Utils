@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from lactate_solver import lactate_solver
+from lactate.lactate_solver import lactate_solver
 
 # read in lactate values
 df = pd.read_excel("C:\\Users\\ryand\\Downloads\\Athlete_Examples.xlsx",sheet_name="RyanDryer")
