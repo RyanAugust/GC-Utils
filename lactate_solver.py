@@ -7,8 +7,9 @@ class lactate_solver(object):
         self.lactate_vector = lactate_vector
         self.heartrate_vector = heartrate_vector
         self.power_vector = power_vector
-        self.solver_methods = {'2and4':self.method_2and4mmol,
-                               '1+2':self.method_1plus2}
+        self.solver_methods = {'2and4':self.method_2and4mmol
+                               ,'1+2':self.method_1plus2
+                               ,'Dmax Mod':self.method_dmaxmod}
 
     def find_LT_values(self, method_name):
         method_function = self.solver_methods[method_name]
@@ -36,7 +37,6 @@ class lactate_solver(object):
         # Find LT1 & LT2
         ## LT1
         LT_1_idx = (lac_fit > (self.lactate_vector.min() + 1)).argmax()
-        print(LT_1_idx)
         LT1_mmol = lac_fit[LT_1_idx]
         LT1_power = x_new[LT_1_idx]
         LT1_hr = hr_fit[LT_1_idx]
@@ -50,11 +50,42 @@ class lactate_solver(object):
         return LT1_mmol, LT1_power, LT1_hr, LT2_mmol, LT2_power, LT2_hr, LTfit
     
     def method_2and4mmol(self):
-        LT1_mmol, LT1_power, LT1_hr, LT2_mmol, LT2_power, LT2_hr, LTfit = 0
+        LT1_mmol = LT1_power = LT1_hr = LT2_mmol = LT2_power = LT2_hr = LTfit = 0
         
         return LT1_mmol, LT1_power, LT1_hr, LT2_mmol, LT2_power, LT2_hr, LTfit
 
-    # def method_dmax(self):
+    def method_dmaxmod(self, rise_in_lt_over_baseline = 0.4):
+
+        LTfit = np.poly1d(np.polyfit(x=self.power_vector, y=self.lactate_vector, deg=3))
+        x_new = np.linspace(start=self.power_vector.min() ,stop=self.power_vector.max() ,num=200)
+        lac_fit = LTfit(x_new)
+
+        HRfit = np.poly1d(np.polyfit(x=self.power_vector, y=self.heartrate_vector, deg=3))
+        hr_fit = HRfit(x_new)
+
+        max_x = max(self.power_vector)
+        min_x = min(self.power_vector)
+
+        roots = np.roots(LTfit - (LTfit(min_x) + rise_in_lt_over_baseline))
+        roots = roots[np.logical_and(np.isreal(roots), roots > min_x, roots < max_x)]
+        LT1_power = max(roots).real
+
+        v_x = np.poly1d(max_x - LT1_power)
+        v_y = np.poly1d(LTfit(max_x) - LTfit(LT1_power))
+        u_x = np.poly1d([1, -LT1_power])
+        u_y = LTfit - LTfit(LT1_power)
+        cross_z = v_x * u_y - v_y * u_x
+
+        LT2_power = np.roots(cross_z.deriv())
+        LT2_power = LT2_power[np.logical_and(LT2_power > LT1_power, LT2_power < max_x)]
+        LT2_power = LT2_power[0]
+
+        LT1_mmol = LTfit(LT1_power)
+        LT2_mmol = LTfit(LT2_power)
+        LT1_hr =  HRfit(LT1_power)
+        LT2_hr = HRfit(LT2_power)
+    
+        return LT1_mmol, LT1_power, LT1_hr, LT2_mmol, LT2_power, LT2_hr, LTfit
         
         
     #     return LT1_mmol, LT1_power, LT1_hr, LT2_mmol, LT2_power, LT2_hr, LTfit
