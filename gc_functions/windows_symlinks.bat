@@ -1,0 +1,12 @@
+mklink /J "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\Ryan Duecker" "K:\My Drive\GoldenCheetah\Ryan Duecker"
+mklink /J "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\metrics" "K:\My Drive\GoldenCheetah\metrics"
+
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\charts" "K:\My Drive\GoldenCheetah\charts"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\configglobal-general.ini" "K:\My Drive\GoldenCheetah\configglobal-general.ini"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\configglobal-trainmode.ini" "K:\My Drive\GoldenCheetah\configglobal-trainmode.ini"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\httpserver.ini" "K:\My Drive\GoldenCheetah\httpserver.ini"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\library.xml" "K:\My Drive\GoldenCheetah\library.xml"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\measures.ini" "K:\My Drive\GoldenCheetah\measures.ini"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\metadata.xml" "K:\My Drive\GoldenCheetah\metadata.xml"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\trainDB" "K:\My Drive\GoldenCheetah\trainDB"
+mklink /H "C:\Users\ryand\Golden Cheetah Dir\GoldenCheetah\usermetrics.xml" "K:\My Drive\GoldenCheetah\usermetrics.xml"
