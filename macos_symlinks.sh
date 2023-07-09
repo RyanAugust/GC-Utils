@@ -1,4 +1,4 @@
-cloud_storage_base_dir="/Users/ryanduecker/Dropbox/GoldenCheetah"
+cloud_storage_base_dir="/Volumes/GoogleDrive/My Drive/GoldenCheetah"
 gc_dir="/Users/ryanduecker/Library/GoldenCheetah"
 
 ln -s "${cloud_storage_base_dir}/Ryan Duecker" "${gc_dir}/Ryan Duecker" 
@@ -13,3 +13,4 @@ ln -s "${cloud_storage_base_dir}/measures.ini" "${gc_dir}/measures.ini"
 ln -s "${cloud_storage_base_dir}/metadata.xml" "${gc_dir}/metadata.xml" 
 ln -s "${cloud_storage_base_dir}/trainDB" "${gc_dir}/trainDB" 
 ln -s "${cloud_storage_base_dir}/usermetrics.xml" "${gc_dir}/usermetrics.xml" 
+ln -s "${cloud_storage_base_dir}/.pyfixes" "${gc_dir}/.pyfixes" 
