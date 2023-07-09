@@ -6,23 +6,42 @@ import json
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 # create formatter
 formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)-8s] - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+
+# Get timezone offset based on lat lon
+def timezone_finder(lat,lon):
+    import datetime
+    import pytz
+    from tzwhere import tzwhere
+
+    tzwhere = tzwhere.tzwhere()
+    timezone_str = tzwhere.tzNameAt(lat, lon)
+
+    timezone = pytz.timezone(timezone_str)
+    dt = datetime.datetime.now()
+    utcoffset = timezone.utcoffset(dt)
+    return utcoffset
+
 # GC Data
-act_date = GC.activityMetrics()["date"]
-act_time = GC.activityMetrics()["time"]
-start_datetime = datetime.datetime.combine(act_date, act_time)
-act_duration = GC.activityMetrics()["Duration"]
-end_datetime = start_datetime + datetime .timedelta(seconds=act_duration)
+
 seconds = list(GC.series(GC.SERIES_SECS))
 lat = GC.series(GC.SERIES_LAT)
 lon = GC.series(GC.SERIES_LON)
+utcoffset = timezone_finder(lat[len(lat)//2],lon[len(lat)//2])
+act_date = GC.activityMetrics()["date"]
+act_time = GC.activityMetrics()["time"]
+start_datetime = datetime.datetime.combine(act_date, act_time) + utcoffset
+act_duration = GC.activityMetrics()["Duration"]
+end_datetime = start_datetime + datetime.timedelta(seconds=act_duration)
+    
+
 
 class weather_api_wrapper:
     def __init__(self):
@@ -62,18 +81,22 @@ class weather_api_wrapper:
         observation_data_json = r.json()
         return observation_data_json
     
-    def point_observation_data(self, lat, lon, ref_time, ref_time_bracket_minutes:int=15):
+    def point_observation_data(self, lat, lon, ref_time, ref_time_bracket_minutes:int=20):
         stations = self._get_point_associated_stations(lat=lat, lon=lon)['features']
-        # for station in stations:
-        station_id = stations[0]['properties']['stationIdentifier']
-        time_bracket = datetime.timedelta(seconds=ref_time_bracket_minutes*60)
-        start_limit, end_limit = ref_time - time_bracket, ref_time + time_bracket
-        station_obs_data = self._get_observation_data(
-            stationId=station_id,
-            start_limit=start_limit,
-            end_limit=end_limit,
-            limit=10)
-        station_data = self._extract_observation_data_dict(station_obs_data)
+        station_attempt = 0
+        station_found = False
+        while station_found == False:
+            station_id = stations[station_attempt]['properties']['stationIdentifier']
+            time_bracket = datetime.timedelta(seconds=ref_time_bracket_minutes*60)
+            start_limit, end_limit = ref_time - time_bracket, ref_time + time_bracket
+            station_obs_data = self._get_observation_data(
+                stationId=station_id,
+                start_limit=start_limit,
+                end_limit=end_limit,
+                limit=10)
+            station_found, station_data = self._extract_observation_data_dict(station_obs_data)
+            station_attempt += 1
+            logger.debug(f'Bumping station to number {station_attempt}')
         return station_data
     
     def _extract_observation_data_df(self, observation_response:dict) -> pd.DataFrame:
@@ -81,31 +104,33 @@ class weather_api_wrapper:
         return obs_df
     
     def _extract_observation_data_dict(self, observation_response:dict) -> dict:
-        record = observation_response['features'][0]
+        try:
+            record = observation_response['features'][0]
+        except IndexError:
+            return False, {}
         data_dict = {
-            'temp': record['properties']['temperature']['value'],
-            'humidity': record['properties']['relativeHumidity']['value'],
-            'wind_speed': record['properties']['windSpeed']['value'],
-            'wind_gust': record['properties']['windGust']['value'],
-            'wind_direction': record['properties']['windDirection']['value'],
-            'wind_chill': record['properties']['windChill']['values'],
-            'pressure': record['properties']['barometricPressure']['value'],
-            'heat_index': record['properties']['heatIndex']['value'],
-            'station_id': record['properties']['station'],
-            'station_lat': record['geometry.coordinates'][1],
-            'station_lon': record['geometry.coordinates'][0],
-            'description': record['properties']['textDescription']['value']
+            'date_time': self._none_protection(record['properties']['timestamp']),
+            'temp': self._none_protection(record['properties']['temperature']['value']),
+            'humidity': self._none_protection(record['properties']['relativeHumidity']['value']),
+            'wind_speed': self._none_protection(record['properties']['windSpeed']['value']),
+            'wind_gust': self._none_protection(record['properties']['windGust']['value']),
+            'wind_direction': self._none_protection(record['properties']['windDirection']['value']),
+            'wind_chill': self._none_protection(record['properties']['windChill']['value']),
+            'pressure': self._none_protection(record['properties']['barometricPressure']['value']),
+            'heat_index': self._none_protection(record['properties']['heatIndex']['value']),
+            'station_id': self._none_protection(record['properties']['station']),
+            'station_lat': self._none_protection(record['geometry']['coordinates'][1]),
+            'station_lon': self._none_protection(record['geometry']['coordinates'][0]),
+            'description': self._none_protection(record['properties']['textDescription'])
         }
-        return data_dict
+        return True, data_dict
 
+    def _none_protection(self, val):
+        if val is None:
+            return 0
+        else:
+            return val
 
-
-
-
-# class helper_functions:
-#     def _datetime_to_api_datetime(datetime_obj):
-#         datetime_str = datetime_obj.strftime("%Y%m%d%H%M")
-#         return datetime_str
 
 class GC_interaction:
     def get_activity_data(self) -> dict:
@@ -144,9 +169,11 @@ class GC_interaction:
         """ TODO: Convert this to take just the GC fields as inputs so that 
         iteration is handled outside of this function
         """
-        for weather_record in weather_records:
-            GC.xdataSeries("WEATHER", "secs").append((pd.Timestamp(weather_record['date_time'].to_datetime64()) - pd.Timestamp(start_datetime)).seconds)
-            index = len(GC.xdataSeries("WEATHER", "secs")) - 1
+        print(weather_records)
+        for index, weather_record in enumerate(weather_records):
+            GC.xdataSeries("WEATHER", "secs").append((datetime.datetime.fromisoformat(weather_record['date_time']) - pd.Timestamp(start_datetime, tz='UTC')).seconds)
+            # index = len(GC.xdataSeries("WEATHER", "secs")) - 1
+            # GC.xdataSeries("WEATHER", "secs")[index] = (datetime.datetime.fromisoformat(weather_record['date_time']) - pd.Timestamp(start_datetime, tz='UTC')).seconds
             GC.xdataSeries("WEATHER", "TEMPERATURE")[index] = weather_record['temp']
             GC.xdataSeries("WEATHER", "HUMIDITY")[index] = weather_record['humidity']
             GC.xdataSeries("WEATHER", "WINDSPEED")[index] = weather_record['wind_speed']
@@ -155,32 +182,37 @@ class GC_interaction:
             GC.xdataSeries("WEATHER", "WINDCHILL")[index] = weather_record['wind_chill']
             GC.xdataSeries("WEATHER", "PRESSURE")[index] = weather_record['pressure']
             GC.xdataSeries("WEATHER", "HEATINDEX")[index] = weather_record['heat_index']
-            GC.xdataSeries("WEATHER", "DESCRTIPTION")[index] = weather_record['description']
+            # GC.xdataSeries("WEATHER", "DESCRTIPTION")[index] = weather_record['description']
 
-            GC.xdataSeries("WEATHER", "STATION_ID")[index] = weather_record['station_id']
+            # GC.xdataSeries("WEATHER", "STATION_ID")[index] = weather_record['station_id']
             GC.xdataSeries("WEATHER", "STATION_LAT")[index] = weather_record['station_lat']
             GC.xdataSeries("WEATHER", "STATION_LON")[index] = weather_record['station_lon']
 
     def _make_reference_points(self, start_datetime, end_datetime, seconds, lat, lon, incremnet_length=10*60, **kwargs):
+        logger.info(f'seconds are of length {len(seconds)}')
         ref_points = []
         increment_datetime = start_datetime
-        index_point = 0
-        # while index_point < len(seconds)-incremnet_length:
-        while increment_datetime < end_datetime:
-            ref_points.append({"ref_time":increment_datetime
-                            ,"lat":lat[index_point]
-                            ,"lon":lon[index_point]})
-            index_point += incremnet_length
-            increment_datetime = start_datetime + datetime.timedelta(seconds=seconds[index_point])
+        index_point = 10
+        while index_point < len(seconds)-incremnet_length:
+            if lat[index_point] > 0:
+                ref_points.append({"ref_time":increment_datetime
+                                ,"lat":lat[index_point]
+                                ,"lon":lon[index_point]})
+                index_point += incremnet_length
+                increment_datetime = start_datetime + datetime.timedelta(seconds=seconds[index_point])
+            else:
+                index_point += 10
+                logger.warning(f'Bumping index point due to bad lat, lon. New index_point: {index_point}')
         return ref_points
 
 
 def main():
     # Extract data from activity
-    activity_data = GC_interaction.get_activity_data()
+    gci = GC_interaction()
+    activity_data = gci.get_activity_data()
     activity_data
     # Make reference points based on activity data
-    ref_points = GC_interaction._make_reference_points(**activity_data)
+    ref_points = gci._make_reference_points(**activity_data)
 
     # Call weather API for reference points
     weather_records = []
@@ -190,7 +222,7 @@ def main():
         weather_records.append(point_obs_data)
 
     # Build & Fill Weather XDATA
-    GC_interaction.init_gc_fields()
-    GC_interaction.store_weather_data_to_activity(weather_records=weather_records)
+    gci.init_gc_fields()
+    gci.store_weather_data_to_activity(weather_records=weather_records)
 
 main()
